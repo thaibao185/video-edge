@@ -104,27 +104,11 @@
             function draw() {
                 if (video.paused || video.ended) return;
 
-                // Tạo canvas tạm để lấy đúng khung hình gốc
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = video.videoWidth;
-                tempCanvas.height = video.videoHeight;
-                const tempCtx = tempCanvas.getContext('2d');
-
-                // Vẽ frame gốc từ video
-                tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-                let frame = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                // Vẽ video lên canvas nền theo full màn hình
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 frame = applyEdgeDetection(frame);
-
-                // Vẽ lên canvas chính đã resize theo màn hình
-                // Phóng frame đã xử lý ra toàn màn hình
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                const edgeImage = new ImageData(frame.data, frame.width, frame.height);
-                const tempCanvas2 = document.createElement('canvas');
-                tempCanvas2.width = frame.width;
-                tempCanvas2.height = frame.height;
-                const tempCtx2 = tempCanvas2.getContext('2d');
-                tempCtx2.putImageData(edgeImage, 0, 0);
-                ctx.drawImage(tempCanvas2, 0, 0, canvas.width, canvas.height);
+                ctx.putImageData(frame, 0, 0);
 
                 requestAnimationFrame(draw);
             }
