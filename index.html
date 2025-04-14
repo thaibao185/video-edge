@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Video Edge Background Fullscreen</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Canvas edge chiếm toàn màn hình */
+        #edgeCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            object-fit: cover;
+            filter: blur(3px);
+        }
+
+        /* Video chính ở giữa như cửa sổ */
+        #videoMain {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 640px;
+            height: 360px;
+            z-index: 2;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Nền toàn màn hình là canvas -->
+    <canvas id="edgeCanvas"></canvas>
+
+    <!-- Video chính (cửa sổ nổi) -->
+    <video id="videoMain" controls autoplay muted loop>
+        <source src="con_cho.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+    </video>
+
+    <script>
+        const video = document.getElementById("videoMain");
+        const canvas = document.getElementById("edgeCanvas");
+        const ctx = canvas.getContext("2d");
+
+        function applyEdgeDetection(imageData) {
+            const width = imageData.width;
+            const height = imageData.height;
+            const src = imageData.data;
+            const dst = new Uint8ClampedArray(src.length);
+
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const i = (y * width + x) * 4;
+
+                    const gx =
+                        -src[((y - 1) * width + (x - 1)) * 4] -
+                        2 * src[(y * width + (x - 1)) * 4] -
+                        src[((y + 1) * width + (x - 1)) * 4] +
+                        src[((y - 1) * width + (x + 1)) * 4] +
+                        2 * src[(y * width + (x + 1)) * 4] +
+                        src[((y + 1) * width + (x + 1)) * 4];
+
+                    const gy =
+                        -src[((y - 1) * width + (x - 1)) * 4] -
+                        2 * src[((y - 1) * width + x) * 4] -
+                        src[((y - 1) * width + (x + 1)) * 4] +
+                        src[((y + 1) * width + (x - 1)) * 4] +
+                        2 * src[((y + 1) * width + x) * 4] +
+                        src[((y + 1) * width + (x + 1)) * 4];
+
+                    const mag = Math.sqrt(gx * gx + gy * gy);
+                    dst[i] = dst[i + 1] = dst[i + 2] = mag;
+                    dst[i + 3] = 255;
+                }
+            }
+
+            for (let i = 0; i < dst.length; i++) {
+                src[i] = dst[i];
+            }
+
+            return imageData;
+        }
+
+        video.addEventListener("play", () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            function draw() {
+                if (video.paused || video.ended) return;
+
+                // Vẽ video lên canvas nền theo full màn hình
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                frame = applyEdgeDetection(frame);
+                ctx.putImageData(frame, 0, 0);
+
+                requestAnimationFrame(draw);
+            }
+
+            draw();
+        });
+    </script>
+
+</body>
+
+</html>
